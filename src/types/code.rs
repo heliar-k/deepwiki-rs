@@ -213,6 +213,11 @@ impl CodePurposeMapper {
         let path_lower = file_path.to_lowercase();
         let name_lower = file_name.to_lowercase();
 
+        // Extension-based mapping for SQL-related files
+        if name_lower.ends_with(".sqlproj") || name_lower.ends_with(".sql") {
+            return CodePurpose::Database;
+        }
+
         // Path-based mapping
         if path_lower.contains("/pages/")
             || path_lower.contains("/views/")
@@ -347,5 +352,82 @@ impl CodePurposeMapper {
         }
 
         CodePurpose::Other
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_sql_file_classification() {
+        // .sqlproj files should always be classified as Database
+        assert_eq!(
+            CodePurposeMapper::map_by_path_and_name(
+                "/src/MyProject.sqlproj",
+                "MyProject.sqlproj"
+            ),
+            CodePurpose::Database
+        );
+
+        // .sql files should always be classified as Database
+        assert_eq!(
+            CodePurposeMapper::map_by_path_and_name(
+                "/src/CreateTable.sql",
+                "CreateTable.sql"
+            ),
+            CodePurpose::Database
+        );
+
+        // Even in root directory
+        assert_eq!(
+            CodePurposeMapper::map_by_path_and_name(
+                "/Schema.sql",
+                "Schema.sql"
+            ),
+            CodePurpose::Database
+        );
+
+        // Even with mixed case
+        assert_eq!(
+            CodePurposeMapper::map_by_path_and_name(
+                "/src/StoredProcedures.SQL",
+                "StoredProcedures.SQL"
+            ),
+            CodePurpose::Database
+        );
+    }
+
+    #[test]
+    fn test_sql_file_in_database_folder() {
+        // SQL files in /database/ folder should still be Database
+        assert_eq!(
+            CodePurposeMapper::map_by_path_and_name(
+                "/src/database/schema.sql",
+                "schema.sql"
+            ),
+            CodePurpose::Database
+        );
+    }
+
+    #[test]
+    fn test_path_based_classification() {
+        // Files in /database/ folder
+        assert_eq!(
+            CodePurposeMapper::map_by_path_and_name(
+                "/src/database/connection.cs",
+                "connection.cs"
+            ),
+            CodePurpose::Database
+        );
+
+        // Files in /repository/ folder
+        assert_eq!(
+            CodePurposeMapper::map_by_path_and_name(
+                "/src/repository/UserRepository.cs",
+                "UserRepository.cs"
+            ),
+            CodePurpose::Dao
+        );
     }
 }

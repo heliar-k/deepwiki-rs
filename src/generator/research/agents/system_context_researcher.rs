@@ -28,7 +28,10 @@ impl StepForwardAgent for SystemContextResearcher {
     fn data_config(&self) -> AgentDataConfig {
         AgentDataConfig {
             required_sources: vec![DataSource::PROJECT_STRUCTURE, DataSource::CODE_INSIGHTS],
-            optional_sources: vec![DataSource::README_CONTENT],
+            optional_sources: vec![
+                DataSource::README_CONTENT,
+                DataSource::CONFLUENCE_PAGES,  // Include external knowledge from Confluence
+            ],
         }
     }
 
@@ -43,6 +46,10 @@ Your task is to analyze and determine based on the provided project information:
 4. External system interactions
 5. System boundary definition
 
+You may have access to existing architecture documentation from external sources (e.g., Confluence).
+If available, use this documentation to enhance your analysis with established business context and architectural decisions.
+Validate code findings against documented architecture and identify any gaps or inconsistencies.
+
 Please return the analysis results in structured JSON format."#
                 .to_string(),
 
@@ -53,6 +60,8 @@ Please return the analysis results in structured JSON format."#
 - Accurately identify project type and technical characteristics
 - Clearly define target users and usage scenarios
 - Clearly delineate system boundaries
+- If external documentation is provided, validate code structure against it
+- Identify any gaps between documented architecture and actual implementation
 - Ensure analysis results conform to the C4 architecture model's system context level"#
                 .to_string(),
 

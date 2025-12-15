@@ -37,7 +37,7 @@ impl StepForwardAgent for BoundaryAnalyzer {
                 DataSource::DEPENDENCY_ANALYSIS,
                 DataSource::ResearchResult(AgentType::SystemContextResearcher.to_string()),
             ],
-            optional_sources: vec![],
+            optional_sources: vec![DataSource::CONFLUENCE_PAGES],
         }
     }
 
@@ -51,6 +51,14 @@ Your task is to identify and analyze based on the provided boundary-related code
 2. API Interface - HTTP endpoints, request/response formats, authentication methods
 3. Router Routes - page router routes, URL paths, route parameters
 4. Integration Suggestions - best practices and example code
+
+You may have access to API documentation from external sources (e.g., Confluence).
+If available:
+- Cross-reference code endpoints with documented API specifications
+- Validate authentication and authorization mechanisms
+- Use established API versioning and naming conventions
+- Reference documented integration patterns and examples
+- Identify any undocumented endpoints or missing documentation
 
 Focus on:
 - Extract boundary information from Entry, Api, Controller, Router type code

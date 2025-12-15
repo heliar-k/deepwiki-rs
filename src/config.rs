@@ -123,6 +123,10 @@ pub struct Config {
     /// Cache configuration
     pub cache: CacheConfig,
 
+    /// Knowledge configuration for external documentation sources
+    #[serde(default)]
+    pub knowledge: KnowledgeConfig,
+
     /// Architecture meta description file path
     pub architecture_meta_path: Option<PathBuf>,
 }
@@ -177,6 +181,44 @@ pub struct CacheConfig {
 
     /// Cache expiration time (hours)
     pub expire_hours: u64,
+}
+
+/// Knowledge configuration for external documentation sources
+#[derive(Debug, Deserialize, Serialize, Clone, Default)]
+pub struct KnowledgeConfig {
+    /// Local documentation files configuration
+    pub local_docs: Option<LocalDocsConfig>,
+}
+
+/// Local documentation files configuration
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct LocalDocsConfig {
+    /// Whether local docs integration is enabled
+    #[serde(default)]
+    pub enabled: bool,
+
+    /// List of paths to PDF documentation files
+    #[serde(default)]
+    pub pdf_paths: Vec<String>,
+
+    /// List of paths to Markdown documentation files
+    #[serde(default)]
+    pub markdown_paths: Vec<String>,
+
+    /// List of paths to text documentation files
+    #[serde(default)]
+    pub text_paths: Vec<String>,
+
+    /// Local cache directory for processed content
+    pub cache_dir: Option<PathBuf>,
+
+    /// Whether to re-process files if they change
+    #[serde(default = "default_true")]
+    pub watch_for_changes: bool,
+}
+
+fn default_true() -> bool {
+    true
 }
 
 impl Config {
@@ -515,6 +557,7 @@ impl Default for Config {
             architecture_meta_path: None,
             llm: LLMConfig::default(),
             cache: CacheConfig::default(),
+            knowledge: KnowledgeConfig::default(),
         }
     }
 }

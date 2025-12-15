@@ -102,7 +102,7 @@ impl StepForwardAgent for KeyModuleInsightEditor {
                 DataSource::ResearchResult(ResearchAgentType::WorkflowResearcher.to_string()),
                 DataSource::ResearchResult(self.insight_key.to_string()),
             ],
-            optional_sources: vec![],
+            optional_sources: vec![DataSource::CONFLUENCE_PAGES],
         }
     }
 

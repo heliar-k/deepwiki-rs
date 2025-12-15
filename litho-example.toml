@@ -1,0 +1,378 @@
+# Litho (deepwiki-rs) Configuration File - Example
+# Copy this file to 'litho.toml' and customize the values for your project
+
+# ============================================================================
+# Project Configuration
+# ============================================================================
+
+# Project name (optional - will auto-detect from Cargo.toml, package.json, etc.)
+project_name = "Example Project"
+
+# Path to the project to analyze (default: current directory)
+project_path = "."
+
+# Where to output the generated documentation
+output_path = "./litho.docs"
+
+# Target language for documentation output
+# Supported: "zh" (Chinese), "en" (English), "ja" (Japanese), "ko" (Korean),
+#            "de" (German), "fr" (French), "ru" (Russian), "vi" (Vietnamese)
+target_language = "en"
+
+# ============================================================================
+# Analysis Configuration
+# ============================================================================
+
+# Analyze code dependencies between modules
+analyze_dependencies = true
+
+# Identify and analyze core components
+identify_components = true
+
+# Maximum directory depth to scan
+max_depth = 10
+
+# Percentage threshold for identifying core components (0-100)
+core_component_percentage = 40.0
+
+# Maximum file size to analyze (in bytes)
+# Default: 65536 (64KB)
+max_file_size = 65536
+
+# Include test files in analysis
+include_tests = false
+
+# Include hidden files (starting with .)
+include_hidden = false
+
+# Directories to exclude from analysis
+excluded_dirs = [
+    ".litho",
+    "litho.docs",
+    "target",
+    "node_modules",
+    ".git",
+    "build",
+    "dist",
+    "venv",
+    ".vs",
+    "bin",
+    "obj",
+    "Debug",
+    "Release",
+    "*Tests",
+    ".svelte-kit",
+    "__pycache__",
+    "__tests__",
+    "__mocks__",
+    "__fixtures__"
+]
+
+# Specific files to exclude
+excluded_files = [
+    "litho.toml",
+    "*.litho",
+    "*.log",
+    "*.tmp",
+    "*.cache",
+    "bun.lock",
+    "package-lock.json",
+    "yarn.lock",
+    "pnpm-lock.yaml",
+    "Cargo.lock",
+    ".gitignore",
+    "*.tpl",
+    "*.md",
+    "*.txt",
+    ".env"
+]
+
+# File extensions to exclude
+excluded_extensions = [
+    "jpg",
+    "jpeg",
+    "png",
+    "gif",
+    "bmp",
+    "ico",
+    "mp3",
+    "mp4",
+    "avi",
+    "pdf",
+    "zip",
+    "tar",
+    "exe",
+    "dll",
+    "so",
+    "archive"
+]
+
+# Only include these extensions (empty = include all supported languages)
+included_extensions = []
+
+# Path to architecture metadata file (optional)
+# architecture_meta_path = "./architecture.yaml"
+
+# ============================================================================
+# LLM Configuration
+# ============================================================================
+
+[llm]
+# LLM Provider to use
+# Supported: "openai", "moonshot", "deepseek", "mistral", "openrouter",
+#            "anthropic", "gemini", "ollama"
+provider = "openai"
+
+# API Key for the LLM provider
+# SECURITY: Never commit your real API key! Use environment variables instead.
+# Set via: $env:LITHO_LLM_API_KEY = "your-key-here" (PowerShell)
+#      or: export LITHO_LLM_API_KEY="your-key-here" (Bash)
+api_key = "${LITHO_LLM_API_KEY}"
+
+# Base URL for the LLM API
+# OpenAI: "https://api.openai.com/v1"
+# Anthropic: "https://api.anthropic.com"
+# DeepSeek: "https://api.deepseek.com"
+# Ollama: "http://localhost:11434/v1"
+api_base_url = "https://api.openai.com/v1"
+
+# Internal working directory
+internal_path = ".litho"
+
+# High-efficiency model for regular inference tasks
+# OpenAI examples: "gpt-4o-mini", "gpt-3.5-turbo"
+# Anthropic examples: "claude-3-5-haiku-20241022"
+# DeepSeek examples: "deepseek-chat"
+# Ollama examples: "llama3.2", "qwen2.5-coder"
+model_efficient = "gpt-4o-mini"
+
+# High-quality model for complex reasoning tasks (and fallback for efficient model)
+# OpenAI examples: "gpt-4o", "gpt-4-turbo"
+# Anthropic examples: "claude-3-5-sonnet-20241022", "claude-3-opus-20240229"
+# DeepSeek examples: "deepseek-reasoner"
+# Ollama examples: "llama3.2:70b", "qwen2.5-coder:32b"
+model_powerful = "gpt-4o"
+
+# Maximum tokens per request
+max_tokens = 4096
+
+# Temperature for LLM responses (0.0 = deterministic, 1.0 = creative)
+temperature = 0.1
+
+# Number of retry attempts for failed requests
+retry_attempts = 5
+
+# Delay between retries in milliseconds
+retry_delay_ms = 5000
+
+# Request timeout in seconds
+timeout_seconds = 300
+
+# Disable preset tools (advanced option)
+disable_preset_tools = false
+
+# Maximum number of parallel LLM requests
+max_parallels = 3
+
+# ============================================================================
+# Cache Configuration
+# ============================================================================
+
+[cache]
+# Enable caching of LLM responses
+enabled = true
+
+# Directory to store cache files
+cache_dir = ".litho/cache"
+
+# Cache expiration time in hours
+# Default: 8760 (365 days)
+expire_hours = 8760
+
+# ============================================================================
+# Knowledge Configuration (External Documentation Sources)
+# ============================================================================
+# Integrates existing architecture documentation from Confluence into the
+# documentation generation process. External knowledge enhances generated
+# documentation with business context and architectural decisions.
+#
+# Integration Points:
+# - Research Phase: All 6 research agents use external knowledge to validate findings
+# - Compose Phase: All 5 documentation agents incorporate external knowledge
+#
+# Benefits:
+# - Validates code structure against documented architecture
+# - Uses established business domain terminology
+# - Cross-references implementation with documented requirements
+# - Identifies gaps between documentation and code
+# - Maintains consistency with organizational knowledge
+# ============================================================================
+
+[knowledge.confluence]
+# Enable Confluence integration
+# When enabled, Litho will automatically fetch and cache Confluence pages
+# during the documentation generation process
+enabled = true
+
+# Confluence base URL (required if enabled)
+# For Atlassian Cloud: "https://example-company.atlassian.net/wiki"
+# For Confluence Server: "https://confluence.example.com"
+base_url = "https://example-company.atlassian.net/wiki"
+
+# Authentication token (required if enabled)
+# SECURITY BEST PRACTICE: Use environment variable reference
+# Format: "${ENV_VAR_NAME}" - the value will be read from the environment
+# 
+# To generate a Confluence API token:
+# 1. Go to https://id.atlassian.com/manage-profile/security/api-tokens
+# 2. Click "Create API token"
+# 3. Copy the token and set it as an environment variable
+#
+# PowerShell: $env:CONFLUENCE_TOKEN = "your-token-here"
+# Bash: export CONFLUENCE_TOKEN="your-token-here"
+auth_token = "${CONFLUENCE_TOKEN}"
+
+# Alternative: Specify environment variable name explicitly (optional)
+# If both auth_token and auth_token_env are set, auth_token takes precedence
+# auth_token_env = "CONFLUENCE_TOKEN"
+
+# List of specific page URLs to fetch (optional)
+# Useful when you have specific architecture documentation pages
+# Supports both URL formats:
+# - https://domain/wiki/spaces/SPACE/pages/123456/Page+Title
+# - https://domain/wiki/pages/viewpage.action?pageId=123456
+page_urls = [
+    # Example: Architecture documentation
+    "https://example-company.atlassian.net/wiki/spaces/ARCH/pages/123456/Architecture+Overview",
+    "https://example-company.atlassian.net/wiki/spaces/ARCH/pages/789012/System+Design",
+    
+    # Example: C4 Model diagrams
+    "https://example-company.atlassian.net/wiki/spaces/ARCH/pages/111222/System+Context",
+    "https://example-company.atlassian.net/wiki/spaces/ARCH/pages/333444/Container+View",
+    
+    # Example: Architecture Decision Records (ADRs)
+    "https://example-company.atlassian.net/wiki/spaces/ARCH/pages/555666/ADR-001+Database+Selection",
+    
+    # Example: Domain Model documentation
+    "https://example-company.atlassian.net/wiki/spaces/PRODUCT/pages/777888/Domain+Model"
+]
+
+# Fetch all pages from specific spaces (optional)
+# Useful for comprehensive documentation spaces
+# Will fetch all pages from these spaces (respects label filters if specified)
+space_keys = [
+    # Example: Architecture space
+    "ARCH",
+    
+    # Example: Platform engineering space
+    "PLATFORM",
+    
+    # Example: API documentation space
+    "API"
+]
+
+# Filter pages by labels (optional)
+# Only pages with ALL specified labels will be fetched
+# Useful for targeting specific types of documentation
+labels = [
+    # Example: Architecture-related labels
+    "architecture",
+    "c4-model",
+    "system-design",
+    
+    # Example: Architecture Decision Records
+    "adr",
+    
+    # Example: Technical specifications
+    "technical-spec",
+    "api-spec",
+    
+    # Example: Domain documentation
+    "domain-model",
+    "business-rules"
+]
+
+# Local directory to cache downloaded content (optional)
+# If not specified, defaults to: <internal_path>/knowledge/confluence/
+# Downloaded pages and attachments are stored here to avoid repeated API calls
+# The cache respects the ttl_hours setting below
+#
+# LANGUAGE-SPECIFIC CACHING:
+# Documents are automatically organized by target language in subfolders:
+# - .litho/knowledge/confluence/en/ (English translations)
+# - .litho/knowledge/confluence/zh/ (Chinese translations)
+# - .litho/knowledge/confluence/ja/ (Japanese translations)
+# etc.
+#
+# This means if your Confluence pages are in various languages, they will be
+# automatically translated to your configured target_language and cached
+# separately for each language configuration.
+cache_dir = ".litho/knowledge/confluence"
+
+# Cache time-to-live in hours (optional, default: 24)
+# How long cached Confluence pages remain valid before re-fetching
+# - Set lower (e.g., 1-6 hours) for frequently updated documentation
+# - Set higher (e.g., 168 hours = 1 week) for stable documentation
+# - Use --force flag with sync-knowledge command to bypass cache
+ttl_hours = 24
+
+# Download attachments such as diagrams and images (optional, default: true)
+# When enabled, downloads all attachments (diagrams, images, PDFs) from pages
+# Attachments are stored in <cache_dir>/<page_id>/attachments/
+# Useful for architecture diagrams, sequence diagrams, C4 diagrams, etc.
+download_attachments = true
+
+# ============================================================================
+# Confluence Integration Usage
+# ============================================================================
+#
+# Manual sync (useful for testing or forcing cache refresh):
+#   cargo run -- sync-knowledge
+#   cargo run -- sync-knowledge --force  # Bypass cache TTL
+#
+# Automatic sync (during documentation generation):
+#   cargo run --  # Syncs if cache expired or missing
+#
+# Integration in agents:
+# - SystemContextResearcher: Validates system boundaries and objectives
+# - DomainModulesDetector: Uses business domain terminology
+# - ArchitectureResearcher: Cross-references with documented architecture
+# - WorkflowResearcher: Validates against documented business processes
+# - KeyModulesInsight: References component documentation
+# - BoundaryAnalyzer: Validates API endpoints against specs
+# - All compose agents: Incorporate external knowledge into final docs
+#
+# Use Cases:
+# 1. Architecture Validation: Compare code structure with C4 diagrams
+# 2. ADR Integration: Reference architectural decisions in generated docs
+# 3. Domain Terminology: Use consistent business language from glossaries
+# 4. API Documentation: Cross-reference endpoints with API specifications
+# 5. Process Documentation: Validate workflows against business requirements
+# ============================================================================
+
+# ============================================================================
+# Usage Examples
+# ============================================================================
+#
+# Basic usage:
+#   cargo run --
+#
+# Override settings via CLI:
+#   cargo run -- --target-language en --llm-api-key ${LITHO_LLM_API_KEY}
+#
+# Force regeneration (ignore cache):
+#   cargo run -- --force-regenerate
+#
+# Verbose output:
+#   cargo run -- --verbose
+#
+# Skip specific phases:
+#   cargo run -- --skip-preprocessing
+#   cargo run -- --skip-research
+#   cargo run -- --skip-documentation
+#
+# Sync external knowledge sources:
+#   cargo run -- sync-knowledge
+#   cargo run -- sync-knowledge --force
+#
+# ============================================================================

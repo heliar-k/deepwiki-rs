@@ -5,7 +5,12 @@ use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use tokio::sync::RwLock;
 
-use crate::{cache::CacheManager, config::Config, llm::client::LLMClient, memory::Memory};
+use crate::{
+    cache::CacheManager, 
+    config::Config, 
+    llm::client::LLMClient, 
+    memory::Memory,
+};
 
 #[derive(Clone)]
 pub struct GeneratorContext {
@@ -54,5 +59,35 @@ impl GeneratorContext {
     pub async fn get_memory_stats(&self) -> HashMap<String, usize> {
         let memory = self.memory.read().await;
         memory.get_usage_stats()
+    }
+
+    /// Load external knowledge (Confluence, Jira, etc.)
+    pub async fn load_external_knowledge(&self) -> Option<String> {
+        use crate::integrations::KnowledgeSyncer;
+        
+        match KnowledgeSyncer::new(self.config.clone()) {
+            Ok(syncer) => {
+                match syncer.load_cached_knowledge() {
+                    Ok(Some(knowledge)) => {
+                        let lang = self.config.target_language.display_name();
+                        println!("📚 Loaded external knowledge base ({})", lang);
+                        Some(knowledge)
+                    }
+                    Ok(None) => {
+                        let lang = self.config.target_language.display_name();
+                        println!("ℹ️  No external knowledge cache found for language: {}", lang);
+                        None
+                    }
+                    Err(e) => {
+                        eprintln!("⚠️  Failed to load external knowledge: {}", e);
+                        None
+                    }
+                }
+            }
+            Err(e) => {
+                eprintln!("⚠️  Failed to create knowledge syncer: {}", e);
+                None
+            }
+        }
     }
 }

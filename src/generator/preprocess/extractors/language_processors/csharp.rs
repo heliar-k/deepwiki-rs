@@ -34,7 +34,7 @@ impl CSharpProcessor {
 
 impl LanguageProcessor for CSharpProcessor {
     fn supported_extensions(&self) -> Vec<&'static str> {
-        vec!["cs", "csproj", "sln"]
+        vec!["cs", "csproj", "sln", "sqlproj", "sql"]
     }
     
     fn extract_dependencies(&self, content: &str, file_path: &Path) -> Vec<Dependency> {
@@ -46,9 +46,19 @@ impl LanguageProcessor for CSharpProcessor {
             return self.extract_csproj_dependencies(content, &source_file);
         }
         
+        // Handle .sqlproj files
+        if file_path.extension().and_then(|e| e.to_str()) == Some("sqlproj") {
+            return self.extract_sqlproj_dependencies(content, &source_file);
+        }
+        
         // Handle .sln files
         if file_path.extension().and_then(|e| e.to_str()) == Some("sln") {
             return self.extract_sln_dependencies(content, &source_file);
+        }
+        
+        // Handle .sql files
+        if file_path.extension().and_then(|e| e.to_str()) == Some("sql") {
+            return self.extract_sql_dependencies(content, &source_file);
         }
         
         // Handle .cs files
@@ -119,9 +129,30 @@ impl LanguageProcessor for CSharpProcessor {
             return "csharp_project".to_string();
         }
         
+        // Check for SQL project files
+        if file_name.ends_with(".sqlproj") {
+            return "sql_database_project".to_string();
+        }
+        
         // Check for solution files
         if file_name.ends_with(".sln") {
             return "csharp_solution".to_string();
+        }
+        
+        // Check for SQL files
+        if file_name.ends_with(".sql") {
+            if content.to_uppercase().contains("CREATE TABLE") || content.to_uppercase().contains("ALTER TABLE") {
+                return "sql_table_definition".to_string();
+            } else if content.to_uppercase().contains("CREATE PROCEDURE") || content.to_uppercase().contains("ALTER PROCEDURE") {
+                return "sql_stored_procedure".to_string();
+            } else if content.to_uppercase().contains("CREATE VIEW") || content.to_uppercase().contains("ALTER VIEW") {
+                return "sql_view".to_string();
+            } else if content.to_uppercase().contains("CREATE FUNCTION") || content.to_uppercase().contains("ALTER FUNCTION") {
+                return "sql_function".to_string();
+            } else if content.to_uppercase().contains("CREATE TRIGGER") {
+                return "sql_trigger".to_string();
+            }
+            return "sql_script".to_string();
         }
         
         // Check for test files
@@ -587,5 +618,265 @@ impl CSharpProcessor {
         } else {
             using_path.to_string()
         }
+    }
+    
+    /// Extract dependencies from .sqlproj files (SQL project references and build items)
+    fn extract_sqlproj_dependencies(&self, content: &str, source_file: &str) -> Vec<Dependency> {
+        let mut dependencies = Vec::new();
+        
+        for (line_num, line) in content.lines().enumerate() {
+            let trimmed = line.trim();
+            
+            // Extract SQL file references: <Build Include="dbo\Tables\Users.sql" />
+            if (trimmed.starts_with("<Build") || trimmed.starts_with("<PreDeploy") || 
+                trimmed.starts_with("<PostDeploy")) && trimmed.contains("Include=") {
+                if let Some(start) = trimmed.find("Include=\"") {
+                    let after_include = &trimmed[start + 9..];
+                    if let Some(end) = after_include.find('"') {
+                        let file_path = &after_include[..end];
+                        
+                        // Extract SQL object name and type from path
+                        let parts: Vec<&str> = file_path.split(['/', '\\', '.']).collect();
+                        let object_type = if parts.len() > 2 {
+                            parts[parts.len() - 3].to_string() // e.g., "Tables", "StoredProcedures"
+                        } else {
+                            "sql_object".to_string()
+                        };
+                        
+                        let object_name = parts
+                            .iter()
+                            .rev()
+                            .nth(1)
+                            .unwrap_or(&"unknown")
+                            .to_string();
+                        
+                        dependencies.push(Dependency {
+                            name: object_name,
+                            path: Some(source_file.to_string()),
+                            is_external: false,
+                            line_number: Some(line_num + 1),
+                            dependency_type: object_type,
+                            version: None,
+                        });
+                    }
+                }
+            }
+            
+            // Extract project references: <ProjectReference Include="..\OtherDatabase\OtherDatabase.sqlproj" />
+            if trimmed.starts_with("<ProjectReference") && trimmed.contains("Include=") {
+                if let Some(start) = trimmed.find("Include=\"") {
+                    let after_include = &trimmed[start + 9..];
+                    if let Some(end) = after_include.find('"') {
+                        let project_path = &after_include[..end];
+                        
+                        // Extract project name from path
+                        let project_name = project_path
+                            .split(['/', '\\'])
+                            .last()
+                            .unwrap_or(project_path)
+                            .trim_end_matches(".sqlproj")
+                            .to_string();
+                        
+                        dependencies.push(Dependency {
+                            name: project_name,
+                            path: Some(source_file.to_string()),
+                            is_external: false,
+                            line_number: Some(line_num + 1),
+                            dependency_type: "database_reference".to_string(),
+                            version: None,
+                        });
+                    }
+                }
+            }
+            
+            // Extract DACPAC references: <ArtifactReference Include="..\..\Packages\DatabaseName.dacpac" />
+            if trimmed.starts_with("<ArtifactReference") && trimmed.contains("Include=") {
+                if let Some(start) = trimmed.find("Include=\"") {
+                    let after_include = &trimmed[start + 9..];
+                    if let Some(end) = after_include.find('"') {
+                        let dacpac_path = &after_include[..end];
+                        
+                        let dacpac_name = dacpac_path
+                            .split(['/', '\\'])
+                            .last()
+                            .unwrap_or(dacpac_path)
+                            .trim_end_matches(".dacpac")
+                            .to_string();
+                        
+                        dependencies.push(Dependency {
+                            name: dacpac_name,
+                            path: Some(source_file.to_string()),
+                            is_external: true,
+                            line_number: Some(line_num + 1),
+                            dependency_type: "dacpac_reference".to_string(),
+                            version: None,
+                        });
+                    }
+                }
+            }
+        }
+        
+        dependencies
+    }
+    
+    /// Extract dependencies from .sql files (table references, stored procedure calls, etc.)
+    fn extract_sql_dependencies(&self, content: &str, source_file: &str) -> Vec<Dependency> {
+        let mut dependencies = Vec::new();
+        
+        for (line_num, line) in content.lines().enumerate() {
+            let upper_line = line.to_uppercase();
+            let trimmed = line.trim();
+            
+            // Skip comments
+            if trimmed.starts_with("--") || trimmed.starts_with("/*") {
+                continue;
+            }
+            
+            // Extract table references from FROM clause
+            if upper_line.contains(" FROM ") {
+                if let Some(from_pos) = upper_line.find(" FROM ") {
+                    let after_from = &line[from_pos + 6..];
+                    let table_part = after_from
+                        .split_whitespace()
+                        .next()
+                        .unwrap_or("")
+                        .trim_matches(|c: char| !c.is_alphanumeric() && c != '.' && c != '_' && c != '[' && c != ']');
+                    
+                    if !table_part.is_empty() {
+                        dependencies.push(Dependency {
+                            name: table_part.to_string(),
+                            path: Some(source_file.to_string()),
+                            is_external: false,
+                            line_number: Some(line_num + 1),
+                            dependency_type: "table_reference".to_string(),
+                            version: None,
+                        });
+                    }
+                }
+            }
+            
+            // Extract table references from JOIN clause
+            if upper_line.contains(" JOIN ") {
+                if let Some(join_pos) = upper_line.find(" JOIN ") {
+                    let after_join = &line[join_pos + 6..];
+                    let table_part = after_join
+                        .split_whitespace()
+                        .next()
+                        .unwrap_or("")
+                        .trim_matches(|c: char| !c.is_alphanumeric() && c != '.' && c != '_' && c != '[' && c != ']');
+                    
+                    if !table_part.is_empty() {
+                        dependencies.push(Dependency {
+                            name: table_part.to_string(),
+                            path: Some(source_file.to_string()),
+                            is_external: false,
+                            line_number: Some(line_num + 1),
+                            dependency_type: "table_reference".to_string(),
+                            version: None,
+                        });
+                    }
+                }
+            }
+            
+            // Extract table references from INSERT INTO
+            if upper_line.contains("INSERT INTO ") {
+                if let Some(insert_pos) = upper_line.find("INSERT INTO ") {
+                    let after_insert = &line[insert_pos + 12..];
+                    let table_part = after_insert
+                        .split_whitespace()
+                        .next()
+                        .unwrap_or("")
+                        .trim_matches(|c: char| !c.is_alphanumeric() && c != '.' && c != '_' && c != '[' && c != ']');
+                    
+                    if !table_part.is_empty() {
+                        dependencies.push(Dependency {
+                            name: table_part.to_string(),
+                            path: Some(source_file.to_string()),
+                            is_external: false,
+                            line_number: Some(line_num + 1),
+                            dependency_type: "table_reference".to_string(),
+                            version: None,
+                        });
+                    }
+                }
+            }
+            
+            // Extract table references from UPDATE
+            if upper_line.contains("UPDATE ") && !upper_line.contains("UPDATE STATISTICS") {
+                if let Some(update_pos) = upper_line.find("UPDATE ") {
+                    let after_update = &line[update_pos + 7..];
+                    let table_part = after_update
+                        .split_whitespace()
+                        .next()
+                        .unwrap_or("")
+                        .trim_matches(|c: char| !c.is_alphanumeric() && c != '.' && c != '_' && c != '[' && c != ']');
+                    
+                    if !table_part.is_empty() {
+                        dependencies.push(Dependency {
+                            name: table_part.to_string(),
+                            path: Some(source_file.to_string()),
+                            is_external: false,
+                            line_number: Some(line_num + 1),
+                            dependency_type: "table_reference".to_string(),
+                            version: None,
+                        });
+                    }
+                }
+            }
+            
+            // Extract table references from DELETE FROM
+            if upper_line.contains("DELETE FROM ") {
+                if let Some(delete_pos) = upper_line.find("DELETE FROM ") {
+                    let after_delete = &line[delete_pos + 12..];
+                    let table_part = after_delete
+                        .split_whitespace()
+                        .next()
+                        .unwrap_or("")
+                        .trim_matches(|c: char| !c.is_alphanumeric() && c != '.' && c != '_' && c != '[' && c != ']');
+                    
+                    if !table_part.is_empty() {
+                        dependencies.push(Dependency {
+                            name: table_part.to_string(),
+                            path: Some(source_file.to_string()),
+                            is_external: false,
+                            line_number: Some(line_num + 1),
+                            dependency_type: "table_reference".to_string(),
+                            version: None,
+                        });
+                    }
+                }
+            }
+            
+            // Extract stored procedure calls: EXEC/EXECUTE ProcedureName
+            if upper_line.contains("EXEC ") || upper_line.contains("EXECUTE ") {
+                let exec_pos = if let Some(pos) = upper_line.find("EXECUTE ") {
+                    pos + 8
+                } else if let Some(pos) = upper_line.find("EXEC ") {
+                    pos + 5
+                } else {
+                    continue;
+                };
+                
+                let after_exec = &line[exec_pos..];
+                let proc_name = after_exec
+                    .split_whitespace()
+                    .next()
+                    .unwrap_or("")
+                    .trim_matches(|c: char| !c.is_alphanumeric() && c != '.' && c != '_' && c != '[' && c != ']');
+                
+                if !proc_name.is_empty() && !proc_name.starts_with('@') {
+                    dependencies.push(Dependency {
+                        name: proc_name.to_string(),
+                        path: Some(source_file.to_string()),
+                        is_external: false,
+                        line_number: Some(line_num + 1),
+                        dependency_type: "stored_procedure_call".to_string(),
+                        version: None,
+                    });
+                }
+            }
+        }
+        
+        dependencies
     }
 }

@@ -39,6 +39,8 @@ pub enum DataSource {
     },
     /// Research results from research agent
     ResearchResult(String),
+    /// External knowledge from Confluence or other sources
+    ExternalKnowledge,
 }
 
 impl DataSource {
@@ -59,6 +61,7 @@ impl DataSource {
         scope: MemoryScope::PREPROCESS,
         key: ScopedKeys::ORIGINAL_DOCUMENT,
     };
+    pub const CONFLUENCE_PAGES: DataSource = DataSource::ExternalKnowledge;
 }
 
 /// Agent data configuration - Declares required data sources
@@ -424,6 +427,17 @@ impl GeneratorPromptBuilder {
                         research_results.insert(agent_type.clone(), result);
                     }
                 }
+                DataSource::ExternalKnowledge => {
+                    // Load external knowledge from Confluence or other sources
+                    if let Some(knowledge) = context.load_external_knowledge().await {
+                        let formatted = format!("### External Knowledge Base\n{}\n\n", knowledge);
+                        let compressed = self
+                            .formatter
+                            .compress_content_if_needed(context, &formatted, "External Knowledge")
+                            .await?;
+                        prompt.push_str(&compressed);
+                    }
+                }
             }
         }
 
@@ -503,6 +517,9 @@ pub trait StepForwardAgent: Send + Sync {
                     if context.get_research(agent_type).await.is_none() {
                         return Err(anyhow!("Required research result {} is not available", agent_type));
                     }
+                }
+                DataSource::ExternalKnowledge => {
+                    // External knowledge is optional by nature, don't fail if not available
                 }
             }
         }
