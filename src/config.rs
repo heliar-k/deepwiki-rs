@@ -195,20 +195,20 @@ pub struct KnowledgeConfig {
 pub struct DocumentCategory {
     /// Category identifier (e.g., "architecture", "database", "api")
     pub name: String,
-    
+
     /// Human-readable description of this category
     #[serde(default)]
     pub description: String,
-    
+
     /// File paths or glob patterns for this category
     #[serde(default)]
     pub paths: Vec<String>,
-    
+
     /// Which agents should receive documents from this category
     /// If empty, documents are available to all agents
     #[serde(default)]
     pub target_agents: Vec<String>,
-    
+
     /// Chunking configuration for large documents in this category
     #[serde(default)]
     pub chunking: Option<ChunkingConfig>,
@@ -220,19 +220,19 @@ pub struct ChunkingConfig {
     /// Enable chunking for large documents (default: true)
     #[serde(default = "default_true")]
     pub enabled: bool,
-    
+
     /// Maximum chunk size in characters (default: 8000 ~2000 tokens)
     #[serde(default = "default_chunk_size")]
     pub max_chunk_size: usize,
-    
+
     /// Overlap between chunks in characters (default: 200)
     #[serde(default = "default_chunk_overlap")]
     pub chunk_overlap: usize,
-    
+
     /// Chunking strategy: "semantic" (by sections), "fixed" (fixed size), "paragraph"
     #[serde(default = "default_chunk_strategy")]
     pub strategy: String,
-    
+
     /// Minimum document size (chars) to trigger chunking (default: 10000)
     #[serde(default = "default_min_size_for_chunking")]
     pub min_size_for_chunking: usize,
@@ -272,7 +272,7 @@ pub struct LocalDocsConfig {
     /// Whether local docs integration is enabled
     #[serde(default)]
     pub enabled: bool,
-    
+
     /// Categorized document sources
     /// Each category can have its own paths and target agents
     #[serde(default)]
@@ -284,7 +284,7 @@ pub struct LocalDocsConfig {
     /// Whether to re-process files if they change
     #[serde(default = "default_true")]
     pub watch_for_changes: bool,
-    
+
     /// Default chunking configuration for all categories
     /// Can be overridden per category
     #[serde(default)]
@@ -495,7 +495,7 @@ impl Config {
                                 return Some(name.to_string());
                             }
                         }
-                        
+
                         // Try to extract <AssemblyName> or <PackageId> from XML
                         for line in content.lines() {
                             let line = line.trim();
@@ -642,8 +642,8 @@ impl Default for LLMConfig {
             provider: LLMProvider::default(),
             api_key: std::env::var("LITHO_LLM_API_KEY").unwrap_or_default(),
             api_base_url: String::from("https://api-inference.modelscope.cn/v1"),
-            model_efficient: String::from("Qwen/Qwen3-Next-80B-A3B-Instruct"),
-            model_powerful: String::from("Qwen/Qwen3-235B-A22B-Instruct-2507"),
+            model_efficient: String::from("ZhipuAI/GLM-4.7"),
+            model_powerful: String::from("Qwen/Qwen3-Next-80B-A3B-Instruct"),
             max_tokens: 131072,
             temperature: Some(0.1),
             retry_attempts: 5,
